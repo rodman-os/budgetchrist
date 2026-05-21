@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Gestion de Budget</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+:root {
+    --primary:#2563eb;
+    --bg:#f3f4f6;
+    --card:#ffffff;
+    --text:#111827;
+    --muted:#6b7280;
+    --danger:#dc2626;
+    --success:#16a34a;
+}
+
+/* Mode sombre */
+.dark {
+    --bg:#0f172a;
+    --card:#1e293b;
+    --text:#f1f5f9;
+    --muted:#94a3b8;
+    --primary:#3b82f6;
+}
+
+body {
+    margin:0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    transition: background 0.3s, color 0.3s;
+}
+
+.app {
+    max-width:480px;
+    margin:0 auto;
+    padding:16px;
+}
+
+h1 {
+    font-size:1.6rem;
+    margin:8px 0 16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+}
+
+.mode-btn {
+    padding:6px 12px;
+    border-radius:8px;
+    border:none;
+    background:var(--primary);
+    color:white;
+    cursor:pointer;
+}
+
+.card {
+    background:var(--card);
+    border-radius:16px;
+    padding:14px 16px;
+    margin-bottom:12px;
+    box-shadow:0 8px 20px rgba(15,23,42,0.08);
+    transition: background 0.3s;
+}
+
+.card-header {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:8px;
+}
+
+.card-title {
+    font-size:1rem;
+    font-weight:600;
+}
+
+table {
+    width:100%;
+    border-collapse:collapse;
+    margin-top:4px;
+    font-size:0.85rem;
+}
+
+th, td {
+    padding:6px 4px;
+    border-bottom:1px solid #e5e7eb;
+}
+
+.dark th, .dark td {
+    border-bottom:1px solid #334155;
+}
+
+th { text-align:left; color:var(--muted); font-weight:500; }
+
+input[type="number"],
+input[type="text"] {
+    padding:6px 8px;
+    border-radius:8px;
+    border:1px solid #d1d5db;
+    font-size:0.9rem;
+    width:140px;
+    background:var(--card);
+    color:var(--text);
+}
+
+.dark input {
+    border:1px solid #475569;
+}
+
+input:focus {
+    outline:none;
+    border-color:var(--primary);
+    box-shadow:0 0 0 1px rgba(37,99,235,0.2);
+}
+
+.btn {
+    margin-top:8px;
+    padding:8px 10px;
+    border-radius:999px;
+    border:none;
+    background:var(--primary);
+    color:white;
+    font-size:0.85rem;
+    font-weight:500;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    cursor:pointer;
+}
+
+.btn-secondary {
+    background:#e5e7eb;
+    color:#111827;
+}
+
+.dark .btn-secondary {
+    background:#334155;
+    color:#f1f5f9;
+}
+
+.btn-danger {
+    background:var(--danger);
+    color:white;
+}
+
+.widget {
+    padding:12px;
+    border-radius:12px;
+    background:var(--primary);
+    color:white;
+    text-align:center;
+    margin-bottom:12px;
+}
+
+.widget-value {
+    font-size:1.8rem;
+    font-weight:700;
+    transition:0.3s ease;
+}
+
+.widget-label {
+    font-size:0.9rem;
+    opacity:0.9;
+}
+
+.progress-container {
+    margin-top:8px;
+}
+
+.progress-bar-bg {
+    width:100%;
+    height:10px;
+    border-radius:999px;
+    background:#e5e7eb;
+    overflow:hidden;
+}
+
+.dark .progress-bar-bg {
+    background:#334155;
+}
+
+.progress-bar-fill {
+    height:100%;
+    background:var(--success);
+    width:0%;
+    transition:width 0.5s ease;
+}
+
+.progress-text {
+    font-size:0.8rem;
+    color:var(--muted);
+    margin-top:4px;
+}
+
+canvas {
+    width:100% !important;
+    max-height:220px;
+}
+
+@media print {
+    .btn, .mode-btn { display:none !important; }
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+    <h1>
+        <span>💰 Gestion de budget</span>
+        <button class="mode-btn" onclick="toggleDarkMode()">🌙</button>
+    </h1>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Citation du jour</div>
+        </div>
+        <p id="citation" style="font-style:italic; color:var(--muted);"></p>
+    </div>
+
+    <div class="widget">
+        <div class="widget-value" id="widgetEpargne" data-value="0">0 €</div>
+        <div class="widget-label">Épargne potentielle</div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Revenu & objectif</div>
+        </div>
+        <label style="display:flex; justify-content:space-between; margin:6px 0;">
+            <span>Salaire mensuel :</span>
+            <input type="number" id="salaire" step="0.01">
+        </label>
+        <label style="display:flex; justify-content:space-between; margin:6px 0;">
+            <span>Objectif d’épargne :</span>
+            <input type="number" id="objectifEpargne" step="0.01">
+        </label>
+        <div class="progress-container">
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progressBar"></div>
+            </div>
+            <div class="progress-text" id="progressText"></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Charges fixes</div>
+        </div>
+        <table>
+            <thead><tr><th>Nom</th><th>Montant</th><th></th></tr></thead>
+            <tbody id="chargesFixesBody"></tbody>
+        </table>
+        <button class="btn btn-secondary" onclick="addCharge('fixe')">+ Ajouter</button>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Dépenses variables</div>
+        </div>
+        <table>
+            <thead><tr><th>Nom</th><th>Montant</th><th></th></tr></thead>
+            <tbody id="chargesVariablesBody"></tbody>
+        </table>
+        <button class="btn btn-secondary" onclick="addCharge('variable')">+ Ajouter</button>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><div class="card-title">Résumé du mois</div></div>
+        <div class="summary-row" style="display:flex; justify-content:space-between;">
+            <span>Total charges fixes</span><span id="totalFixes">0 €</span>
+        </div>
+        <div class="summary-row" style="display:flex; justify-content:space-between;">
+            <span>Total variables</span><span id="totalVariables">0 €</span>
+        </div>
+        <div class="summary-row" style="display:flex; justify-content:space-between;">
+            <strong>Total dépenses</strong><strong id="totalDepenses">0 €</strong>
+        </div>
+        <div class="summary-row" style="display:flex; justify-content:space-between;">
+            <span>Solde après épargne</span><span id="solde">0 €</span>
+        </div>
+        <div class="summary-row" style="display:flex; justify-content:space-between;">
+            <span>% du revenu dépensé</span><span id="pourcentageDepense">0 %</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><div class="card-title">Graphique des dépenses</div></div>
+        <canvas id="chartDepenses"></canvas>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><div class="card-title">Actions</div></div>
+        <button class="btn" onclick="window.print()">📄 Export PDF</button>
+        <button class="btn btn-danger" onclick="reinitialiser()">🗑 Réinitialiser</button>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const STORAGE_KEY = "budgetSimple_v1";
+const DARK_KEY = "modeSombre";
+
+let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
+    salaire: 2550,
+    objectifEpargne: 850,
+    chargesFixes: [
+        { nom: "Loyer", montant: 840 },
+        { nom: "EDF", montant: 77.11 },
+        { nom: "Internet & téléphone", montant: 49.98 },
+        { nom: "Navigo", montant: 90.8 },
+        { nom: "Assurance habitation", montant: 16.94 },
+        { nom: "Salle de sport", montant: 31.96 },
+        { nom: "Frais bancaires", montant: 9.3 }
+    ],
+    chargesVariables: [
+        { nom: "Courses", montant: 120 },
+        { nom: "Loisirs", montant: 200 },
+        { nom: "Imprévus", montant: 150 },
+        { nom: "Cadeaux", montant: 80 }
+    ]
+};
+
+let chart = null;
+
+const citations = [
+    "Chaque euro économisé est un pas vers ta liberté.",
+    "Ton futur te remerciera pour les efforts d’aujourd’hui.",
+    "La discipline financière bat le talent quand le talent ne sait pas gérer son argent.",
+    "Tu n’as pas besoin d’être parfait, juste constant.",
+    "L’épargne est la première étape vers l’indépendance.",
+    "Investis dans toi-même, c’est le meilleur placement.",
+    "Les petits montants répétés créent les grands résultats.",
+    "Ton budget est ton super-pouvoir, utilise-le bien."
+];
+
+function afficherCitation() {
+    const random = Math.floor(Math.random() * citations.length);
+    document.getElementById("citation").textContent = citations[random];
+}
+
+function toggleDarkMode() {
+    document.body.classList.toggle("dark");
+    localStorage.setItem(DARK_KEY, document.body.classList.contains("dark"));
+}
+
+function chargerModeSombre() {
+    const isDark = localStorage.getItem(DARK_KEY) === "true";
+    if (isDark) document.body.classList.add("dark");
+}
+
+function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    updateUI();
+}
+
+function animeValeur(id, valeur) {
+    const el = document.getElementById(id);
+    const start = Number(el.dataset.value) || 0;
+    const end = valeur;
+    const duration = 500;
+    const startTime = performance.now();
+
+    function animate(now) {
+        const progress = Math.min((now - startTime) / duration, 1);
+        const current = start + (end - start) * progress;
+        el.textContent = current.toFixed(2) + " €";
+        el.dataset.value = current;
+        if (progress < 1) requestAnimationFrame(animate);
+    }
+    requestAnimationFrame(animate);
+}
+
+function updateUI() {
+    document.getElementById("salaire").value = data.salaire;
+    document.getElementById("objectifEpargne").value = data.objectifEpargne;
+
+    const tbodyFixes = document.getElementById("chargesFixesBody");
+    tbodyFixes.innerHTML = "";
+    data.chargesFixes.forEach((c, i) => {
+        tbodyFixes.innerHTML += `
+            <tr>
+                <td><input type="text" value="${c.nom}" onchange="data.chargesFixes[${i}].nom=this.value; save()"></td>
+                <td><input type="number" step="0.01" value="${c.montant}" onchange="data.chargesFixes[${i}].montant=parseFloat(this.value)||0; save()"></td>
+                <td><button class="btn btn-danger" onclick="data.chargesFixes.splice(${i},1); save()">X</button></td>
+            </tr>
+        `;
+    });
+
+    const tbodyVar = document.getElementById("chargesVariablesBody");
+    tbodyVar.innerHTML = "";
+    data.chargesVariables.forEach((c, i) => {
+        tbodyVar.innerHTML += `
+            <tr>
+                <td><input type="text" value="${c.nom}" onchange="data.chargesVariables[${i}].nom=this.value; save()"></td>
+                <td><input type="number" step="0.01" value="${c.montant}" onchange="data.chargesVariables[${i}].montant=parseFloat(this.value)||0; save()"></td>
+                <td><button class="btn btn-danger" onclick="data.chargesVariables.splice(${i},1); save()">X</button></td>
+            </tr>
+        `;
+    });
+
+    const totalFixes = data.chargesFixes.reduce((s,c)=>s+(c.montant||0),0);
+    const totalVariables = data.chargesVariables.reduce((s,c)=>s+(c.montant||0),0);
+    const totalDepenses = totalFixes + totalVariables;
+    const salaireN = Number(data.salaire) || 0;
+    const objectifN = Number(data.objectifEpargne) || 0;
+
+    const epargnePotentielle = Math.max(salaireN - totalDepenses, 0);
+    const solde = salaireN - totalDepenses - objectifN;
+    const pourcentage = salaireN ? (totalDepenses / salaireN * 100) : 0;
+
+    document.getElementById("totalFixes").textContent = totalFixes.toFixed(2) + " €";
+    document.getElementById("totalVariables").textContent = totalVariables.toFixed(2) + " €";
+    document.getElementById("totalDepenses").textContent = totalDepenses.toFixed(2) + " €";
+    document.getElementById("solde").textContent = solde.toFixed(2) + " €";
+    document.getElementById("solde").style.color = solde >= 0 ? "var(--success)" : "var(--danger)";
+    document.getElementById("pourcentageDepense").textContent = pourcentage.toFixed(1) + " %";
+
+    animeValeur("widgetEpargne", epargnePotentielle);
+
+    let progress = 0;
+    if (objectifN > 0) {
+        progress = Math.min(100, (epargnePotentielle / objectifN) * 100);
+    }
+    document.getElementById("progressBar").style.width = progress + "%";
+    document.getElementById("progressText").textContent =
+        objectifN === 0
+        ? "Aucun objectif défini"
+        : `Épargne potentielle : ${epargnePotentielle.toFixed(2)} € / ${objectifN.toFixed(2)} € (${progress.toFixed(1)}%)`;
+
+    const ctx = document.getElementById("chartDepenses").getContext("2d");
+    if (chart) chart.destroy();
+    chart = new Chart(ctx, {
+        type: "pie",
+        data: {
+            labels: ["Charges fixes", "Variables", "Épargne potentielle"],
+            datasets: [{
+                data: [totalFixes, totalVariables, epargnePotentielle],
+                backgroundColor: ["#3b82f6", "#f97316", "#22c55e"]
+            }]
+        },
+        options: { plugins: { legend: { position: "bottom" } } }
+    });
+}
+
+function addCharge(type) {
+    if (type === "fixe") data.chargesFixes.push({ nom:"Nouvelle charge", montant:0 });
+    else data.chargesVariables.push({ nom:"Nouvelle dépense", montant:0 });
+    save();
+}
+
+function reinitialiser() {
+    if (!confirm("Réinitialiser toutes les données ?")) return;
+    localStorage.removeItem(STORAGE_KEY);
+    location.reload();
+}
+
+document.getElementById("salaire").addEventListener("change", e => {
+    data.salaire = parseFloat(e.target.value) || 0;
+    save();
+});
+
+document.getElementById("objectifEpargne").addEventListener("change", e => {
+    data.objectifEpargne = parseFloat(e.target.value) || 0;
+    save();
+});
+
+window.addEventListener("load", () => {
+    chargerModeSombre();
+    afficherCitation();
+    updateUI();
+});
+</script>
+</body>
+</html>
